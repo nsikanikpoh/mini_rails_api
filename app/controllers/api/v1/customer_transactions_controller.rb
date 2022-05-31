@@ -1,5 +1,5 @@
 class Api::V1::CustomerTransactionsController < ApplicationController
-    before_action :validate_currency, only: :create
+    before_action :validate_currency, only: [:create, :update]
 
 
    def create
@@ -35,6 +35,39 @@ class Api::V1::CustomerTransactionsController < ApplicationController
             render json: {error: "problem getting rate conversion at the moment please try again later" }, status: 422
         end
    end
+
+    def update
+      @transaction = CustomerTransaction.find(params[:id])
+
+      if @transaction
+
+          if !transaction_params[:amount].is_a?(Numeric)
+            render json: {message: "amount must be a number"}, status: :bad_request and return
+          end         
+        
+         rate = FxApiService.new("from=#{transaction_params[:currency]}&to=#{transaction_params[:output_currency]}", transaction_params[:output_currency]).get_rate
+         
+         logger.info "DDHHD: #{rate.inspect}"
+  
+  
+         if rate.is_a?(Numeric)
+              converted_rate = rate * transaction_params[:amount].to_d.round(2)
+
+              @transaction.update(in_amount: transaction_params[:amount].to_d.round(2), 
+              in_currency: transaction_params[:input_currency],
+              out_currency: transaction_params[:output_currency],
+              out_amount: converted_rate)
+  
+              render json: Api::V1::CustomerTransactionSerializer.new(@transaction).as_json, status: 200
+          else
+              render json: {error: "problem getting rate conversion at the moment please try again later" }, status: 422
+          end
+
+      else
+        render json: {message: "transation with id: #{params[:id]} not found"}, status: :not_found
+      end
+
+    end
   
 
   

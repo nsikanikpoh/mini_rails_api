@@ -4,7 +4,7 @@ Rails.application.routes.draw do
   defaults format: :json do
     namespace :api do
       namespace :v1 do
-        resources :customer_transactions, path: :transactions, only: [:create, :index, :show]
+        resources :customer_transactions, path: :transactions, only: [:create, :index, :show, :update]
       end
     end
   end
