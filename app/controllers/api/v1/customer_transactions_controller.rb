@@ -3,13 +3,18 @@ class Api::V1::CustomerTransactionsController < ApplicationController
 
 
    def create
+      if !transaction_params[:amount].is_a?(Numeric)
+        render json: {message: "amount must be a number"}, status: :bad_request and return
+      end
        @transaction = CustomerTransaction.new
        
       
        rate = FxApiService.new("from=#{transaction_params[:currency]}&to=USD").get_rate
        
        logger.info "DDHHD: #{rate.inspect}"
-       if rate.is_a? Numeric
+
+
+       if rate.is_a?(Numeric)
             converted_rate = rate * transaction_params[:amount].to_d.round(2)
             @transaction.in_amount = transaction_params[:amount].to_d.round(2)
             @transaction.in_currency = transaction_params[:currency]
@@ -53,6 +58,10 @@ class Api::V1::CustomerTransactionsController < ApplicationController
 
       def transaction_params
         params.require(:transaction).permit(:amount, :currency, :transaction_date, :customer_id)
+      end
+
+      def validate_num(params)
+         params.is_a? Numeric
       end
   
       def validate_currency
