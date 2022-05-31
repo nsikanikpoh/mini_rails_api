@@ -9,7 +9,7 @@ class Api::V1::CustomerTransactionsController < ApplicationController
        @transaction = CustomerTransaction.new
        
       
-       rate = FxApiService.new("from=#{transaction_params[:currency]}&to=USD").get_rate
+       rate = FxApiService.new("from=#{transaction_params[:currency]}&to=#{transaction_params[:output_currency]}", transaction_params[:output_currency]).get_rate
        
        logger.info "DDHHD: #{rate.inspect}"
 
@@ -17,9 +17,9 @@ class Api::V1::CustomerTransactionsController < ApplicationController
        if rate.is_a?(Numeric)
             converted_rate = rate * transaction_params[:amount].to_d.round(2)
             @transaction.in_amount = transaction_params[:amount].to_d.round(2)
-            @transaction.in_currency = transaction_params[:currency]
+            @transaction.in_currency = transaction_params[:input_currency]
             @transaction.out_amount = converted_rate
-            @transaction.out_currency = 'USD'
+            @transaction.out_currency = transaction_params[:output_currency]
             @transaction.request_ip = request.remote_ip
 
             @transaction.customer_id = transaction_params[:customer_id]
@@ -57,7 +57,7 @@ class Api::V1::CustomerTransactionsController < ApplicationController
     private
 
       def transaction_params
-        params.require(:transaction).permit(:amount, :currency, :transaction_date, :customer_id)
+        params.require(:transaction).permit(:amount, :input_currency, :output_currency, :transaction_date, :customer_id)
       end
 
       def validate_num(params)
@@ -66,7 +66,7 @@ class Api::V1::CustomerTransactionsController < ApplicationController
   
       def validate_currency
         currencies = CurrencyListLookupService.currencies
-       if !currencies.include?(transaction_params[:currency])
+       if !currencies.include?(transaction_params[:input_currency]) || !currencies.include?(transaction_params[:output_currency])
           render json: {message: "currency must be in the currency list", currencies: currencies}, status: :bad_request
       end
     end

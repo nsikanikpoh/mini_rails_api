@@ -2,10 +2,11 @@
 require 'net/http'
 
 class FxApiService
-    attr_reader :request_params
+    attr_reader :request_params, :out_currency
 
-    def initialize(request_params)
+    def initialize(request_params, out_currency)
         @request_params = request_params
+        @out_currency = out_currency
     end
 
     def get_rate
@@ -32,7 +33,7 @@ class FxApiService
         request_object["content-type"] = "application/json"
         begin
             res = http.request(request_object)
-            return JSON.parse(res.body)["results"]["USD"] if res.body
+            return JSON.parse(res.body)["results"][out_currency] if res.body
         rescue => e
             return e
         end
